@@ -19,6 +19,8 @@ build-x86_64: $(x86_64_asm_object_files)
 	cp dist/x86_64/kernel.bin targets/x86_64/iso/boot/kernel.bin && \
 	grub-mkrescue /usr/lib/grub/i386-pc -o dist/x86_64/kernel.iso targets/x86_64/iso
 
+build-all: build-x86_64
+
 clean:
 	rm -rf dist
 	rm targets/*/iso/boot/kernel.bin
@@ -29,6 +31,8 @@ endif
 ifeq ($(UNAME), Windows) # Only on Windows
 run-x86_64:
 	qemu-system-x86_64 -cdrom dist/x86_64/kernel.iso
+
+run-all: run-x86_64
 
 docker-build: buildenv/Dockerfile
 	docker build buildenv -t osdev-buildenv
