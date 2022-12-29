@@ -28,7 +28,7 @@ $(kernel_object_files): build/kernel/%.o : src/impl/kernel/%.c
 	mkdir -p $(dir $@) && \
 	x86_64-elf-gcc -c -I src/intf -ffreestanding $(patsubst build/kernel/%.o, src/impl/kernel/%.c, $@) -o $@
 
-.PHONY: build-x86_64
+.PHONY: build-x86_64 build-all clean run-x86_64 run-all docker-build docker-run
 build-x86_64: $(x86_64_object_files) $(kernel_object_files)
 	mkdir -p dist/x86_64 && .
 	x86_64-elf-ld -n -o dist/x86_64/kernel.bin -T targets/x86_64/linker.ld $(x86_64_object_files) $(kernel_object_files) && \
