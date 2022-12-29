@@ -1,0 +1,3 @@
+dist
+targets/*/iso/boot/kernel.bin
+build
