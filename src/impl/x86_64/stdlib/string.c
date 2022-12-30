@@ -1,5 +1,5 @@
-#include "string.h"
-#include "algorithm.h"
+#include "stdlib/string.h"
+#include "stdlib/algorithm.h"
 
 void reverse_str(char str[], int length)
 {

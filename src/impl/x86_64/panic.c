@@ -2,6 +2,7 @@
 #include "cgascr.h"
 #include "cpu.h"
 #include "stdlib/string.h"
+#include <stdint.h>
 #include <stddef.h>
 
 void panic(const char msg[])
