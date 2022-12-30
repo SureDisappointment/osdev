@@ -1,7 +1,7 @@
-#include "print.h"
+#include "cgascr.h"
 
 void kmain() {
-    print_clear();
-    print_set_color(PRINT_COLOR_YELLOW, PRINT_COLOR_BLACK);
-    print_str("Hello, Bozo!");
+    CGA_clear();
+    CGA_set_color(CGA_F_YELLOW | CGA_B_BLACK);
+    CGA_puts("Hello, Bozo!");
 }
