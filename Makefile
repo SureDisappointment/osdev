@@ -11,9 +11,13 @@ ISO_NAME ?= kernel.iso
 
 ASM ?= nasm
 x86_64_CC ?= x86_64-elf-gcc
-CFLAGS ?= -c -I src/intf -ffreestanding
+CFLAGS := $(CFLAGS) -c -I src/intf -ffreestanding -Wall -Wextra -pedantic
 x86_64_LD ?= x86_64-elf-ld
-LFLAGS ?= -n
+LFLAGS := $(LFLAGS) -n
+
+ifdef RELEASE
+CFLAGS := $(CFLAGS) -O3 -fno-tree-loop-distribute-patterns -fno-tree-vectorize -DNDEBUG
+endif
 
 # Targets that don't depend on files
 .PHONY: build-x86_64 build-all clean run-x86_64 run-all docker-build docker-run
