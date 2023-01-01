@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-void swap(void *a, void *b);
+void swap(void *a, void *b, size_t len);
 
 void *memset(void *s, int c, size_t n);
 
