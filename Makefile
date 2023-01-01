@@ -11,7 +11,7 @@ ISO_NAME ?= kernel.iso
 
 ASM ?= nasm
 x86_64_CC ?= x86_64-elf-gcc
-CFLAGS := $(CFLAGS) -c -I src/intf -ffreestanding -Wall -Wextra -pedantic
+CFLAGS := $(CFLAGS) -c -I src/intf -ffreestanding -Wall -Wextra -pedantic -nostdlib -mabi=sysv #-g
 x86_64_LD ?= x86_64-elf-ld
 LFLAGS := $(LFLAGS) -n
 

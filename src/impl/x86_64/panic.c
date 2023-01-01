@@ -2,6 +2,7 @@
 #include "cgascr.h"
 #include "cpu.h"
 #include "stdlib/string.h"
+#include "stdlib/stdio.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -14,10 +15,7 @@ void panic(const char msg[])
     CGA_puts("Kernel panic\n");
     CGA_set_color(CGA_DEFAULT_COLOR);
     if (msg)
-    {
-        CGA_puts(msg);
-        CGA_put('\n');
-    }
+        printf("%s\n", msg);
     CGA_puts("Stacktrace:\n");
 
     // Print Stacktrace
@@ -33,10 +31,7 @@ void panic(const char msg[])
     // Don't show more than 10 entries
     for (int i = 0; i < 10 && fp; fp = fp->prev, i++)
     {
-        CGA_puts("\t0x");
-        char buf[n_digits((uintptr_t) fp->return_addr, 16) + 2];
-        CGA_puts(itoa((uintptr_t) fp->return_addr, buf, 16));
-        CGA_put('\n');
+        printf("\t%p\n", (uintptr_t)fp->return_addr);
     }
 
     cpu_halt();
