@@ -37,6 +37,6 @@ void CGA_show(size_t x, size_t y, char c);
 void CGA_setpos(size_t x, size_t y);
 void CGA_getpos(size_t *x, size_t *y);
 void CGA_scroll();
-void CGA_put(char c);
-void CGA_puts(const char s[]);
+void CGA_putchar(char c);
+void CGA_puts(const char *s);
 void CGA_set_color(CGA_Color c);

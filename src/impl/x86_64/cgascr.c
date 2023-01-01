@@ -22,7 +22,7 @@ CGA_Color color = CGA_DEFAULT_COLOR;
 
 void show_glyph(size_t x, size_t y, glyph g)
 {
-    assert(y < HEIGHT && x < WIDTH, "CGA screen indexed out of bounds");
+    assert(y < HEIGHT && x < WIDTH, "CGA video memory indexed out of bounds");
     screen[y * WIDTH + x] = g;
 }
 
@@ -85,9 +85,9 @@ void handle_control_char(char c)
         show_glyph(cursor_x, cursor_y, clear_glyph);
         break;
     case '\t':
-        CGA_put(' ');
+        CGA_putchar(' ');
         while (cursor_x % 4 != 0 && cursor_x < 80)
-            CGA_put(' ');
+            CGA_putchar(' ');
         break;
     case '\n':
         cursor_x = 0;
@@ -107,7 +107,7 @@ void handle_control_char(char c)
     }
 }
 
-void CGA_put(char c)
+void CGA_putchar(char c)
 {
     if(cursor_x == WIDTH)
         handle_control_char('\n');
@@ -122,13 +122,10 @@ void CGA_put(char c)
     cursor_x++;
 }
 
-void CGA_puts(const char s[])
+void CGA_puts(const char *s)
 {
-    for(size_t i = 0; s[i] != '\0'; i++)
-    {
-        assert(i < WIDTH * HEIGHT, "string too long or not NUL-terminated");
-        CGA_put(s[i]);
-    }
+    while(*s)
+        CGA_putchar(*s++);
 }
 
 void CGA_set_color(CGA_Color c)
