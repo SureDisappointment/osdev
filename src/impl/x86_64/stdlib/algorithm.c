@@ -1,11 +1,15 @@
 #include "stdlib/algorithm.h"
 #include <stddef.h>
 
-void swap(void *a, void *b)
+void swap(void *a, void *b, size_t len)
 {
-    void* t = a;
-    a = b;
-    b = t;
+    unsigned char *p = a, *q = b, tmp;
+    for (size_t i = 0; i != len; ++i)
+    {
+        tmp = p[i];
+        p[i] = q[i];
+        q[i] = tmp;
+    }
 }
 
 void *memset(void *s, int c, size_t n)
