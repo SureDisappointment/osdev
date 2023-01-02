@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-typedef enum CGA_Color
+typedef enum
 {
     CGA_F_BLACK = 0,
     CGA_F_BLUE = 1,

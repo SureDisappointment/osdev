@@ -7,14 +7,14 @@
 static const size_t WIDTH = 80;
 static const size_t HEIGHT = 25;
 
-typedef struct glyph
+typedef struct
 {
     char c;
     uint8_t color;
 } glyph;
 static const glyph clear_glyph = {0, CGA_DEFAULT_COLOR};
 
-glyph* screen = (glyph*) 0xb8000;
+glyph *screen = (glyph*) 0xb8000;
 size_t cursor_x = 0;
 size_t cursor_y = 0;
 

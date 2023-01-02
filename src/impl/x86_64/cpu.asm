@@ -13,7 +13,7 @@ int_disable:
 	ret
 
 cpu_idle:
-	sti ; STI und HLT werden atomar ausgefuehrt
+	sti
 	hlt
         ret
 
