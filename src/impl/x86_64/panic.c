@@ -5,8 +5,9 @@
 #include "stdlib/stdio.h"
 #include <stdint.h>
 #include <stddef.h>
+#include <stdarg.h>
 
-void panic(const char msg[])
+void panicf(const char *fmt, ...)
 {
     CGA_clear();
     CGA_setpos(0, 0);
@@ -14,8 +15,14 @@ void panic(const char msg[])
     CGA_set_color(CGA_F_LIGHT_RED);
     CGA_puts("Kernel panic\n");
     CGA_set_color(CGA_DEFAULT_COLOR);
-    if (msg)
-        printf("%s\n", msg);
+    if (fmt)
+    {
+        va_list args;
+	    va_start(args, fmt);
+        vprintf(fmt, args);
+        va_end(args);
+        CGA_putchar('\n');
+    }
     CGA_puts("Stacktrace:\n");
 
     // Print Stacktrace

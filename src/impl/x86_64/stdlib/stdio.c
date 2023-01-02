@@ -2,6 +2,7 @@
 #include "stdlib/string.h"
 #include "stdlib/algorithm.h"
 #include <stdint.h>
+#include <stdarg.h>
 #include "cgascr.h"
 
 enum Printf_State
@@ -24,26 +25,19 @@ enum Printf_Length
 
 SYSV int printf(const char *fmt, ...)
 {
+    va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+    va_end(args);
+}
+
+SYSV int vprintf(const char *fmt, va_list args)
+{
     enum Printf_State state = PRINTF_STATE_NORMAL;
     enum Printf_Length length = PRINTF_LENGTH_DEFAULT;
 
-    int64_t args[5];
-    asm volatile("mov %%rsi, %0" : "=m" (args[0]));
-    asm volatile("mov %%rdx, %0" : "=m" (args[1]));
-    asm volatile("mov %%rcx, %0" : "=m" (args[2]));
-    asm volatile("mov %%r8, %0" : "=m" (args[3]));
-    asm volatile("mov %%r9, %0" : "=m" (args[4]));
-    int64_t *argp = args;
-    int on_stack = 0;
-
     while(*fmt)
     {
-        if(argp - args == 5 && !on_stack)
-        {
-            asm("mov %%rbp, %0" : "=r" (argp));
-            argp += 2;
-            on_stack = 1;
-        }
         switch(state)
         {
             case PRINTF_STATE_NORMAL:
@@ -98,36 +92,30 @@ SYSV int printf(const char *fmt, ...)
                 {
                     char buf[23];
                     case 'c':
-                        CGA_putchar(*(char *)argp);
-                        argp++;
+                        CGA_putchar((char) va_arg(args, int));
                         break;
                     case 's':
-                        CGA_puts(*(char **)argp);
-                        argp++;
+                        CGA_puts(va_arg(args, const char*));
                         break;
                     case '%':
                         CGA_putchar('%');
                         break;
                     case 'd':
                     case 'i':
-                        CGA_puts(itoa(*argp, buf, 10));
-                        argp++;
+                        CGA_puts(itoa(va_arg(args, int64_t), buf, 10));
                         break;
                     case 'u':
-                        CGA_puts(uitoa(*(uint64_t *)argp, buf, 10));
-                        argp++;
+                        CGA_puts(uitoa(va_arg(args, uint64_t), buf, 10));
                         break;
                     case 'p':
                         CGA_puts("0x");
                     case 'X':
                         // TODO: uppercase hex
                     case 'x':
-                        CGA_puts(itoa(*argp, buf, 16));
-                        argp++;
+                        CGA_puts(itoa(va_arg(args, int64_t), buf, 16));
                         break;
                     case 'o':
-                        CGA_puts(itoa(*argp, buf, 8));
-                        argp++;
+                        CGA_puts(itoa(va_arg(args, int64_t), buf, 8));
                         break;
                     case 'f':
                     case 'F':
@@ -163,30 +151,24 @@ SYSV int printf(const char *fmt, ...)
     // TODO: keep track of length
     return 0;
 }
-
+/*
 SYSV int sprintf(char *buffer, const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(buffer, fmt, args);
+    va_end(args);
+}
+
+SYSV int vsprintf(char *buffer, const char *fmt, va_list args)
 {
     char *start = buffer;
     
     enum Printf_State state = PRINTF_STATE_NORMAL;
     enum Printf_Length length = PRINTF_LENGTH_DEFAULT;
 
-    int64_t args[4];
-    asm volatile("mov %%rdx, %0" : "=m" (args[0]));
-    asm volatile("mov %%rcx, %0" : "=m" (args[1]));
-    asm volatile("mov %%r8, %0" : "=m" (args[2]));
-    asm volatile("mov %%r9, %0" : "=m" (args[3]));
-    int64_t *argp = args;
-    int on_stack = 0;
-
     while(*fmt)
     {
-        if(argp - args == 4 && !on_stack)
-        {
-            asm("mov %%rbp, %0" : "=r" (argp));
-            argp += 2;
-            on_stack = 1;
-        }
         switch(state)
         {
             case PRINTF_STATE_NORMAL:
@@ -240,21 +222,19 @@ SYSV int sprintf(char *buffer, const char *fmt, ...)
                 switch(*fmt)
                 {
                     case 'c':
-                        *buffer++ = *(char *)argp;
-                        argp++;
+                        *buffer++ = (char) va_arg(args, int);
                         break;
                     case 's':
                         *buffer = '\0';
-                        strcat(buffer, *(char **)argp);
+                        strcat(buffer, va_arg(args, const char*));
                         buffer += strlen(buffer);
-                        argp++;
                         break;
                     case '%':
                         *buffer++ = '%';
                         break;
                     case 'd':
                     case 'i':
-                        itoa(*argp, buffer, 10);
+                        itoa(va_arg(args, int64_t), buffer, 10);
                         buffer += n_digits(*argp, 10) + (*argp < 0 ? 1 : 0);
                         argp++;
                         break;
@@ -314,6 +294,14 @@ SYSV int sprintf(char *buffer, const char *fmt, ...)
 }
 
 SYSV int snprintf(char *buffer, size_t bufsz, const char *fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buffer, bufsz, fmt, args);
+    va_end(args);
+}
+
+SYSV int vsnprintf(char *buffer, size_t bufsz, const char *fmt, va_list args)
 {
     char *start = buffer;
     
@@ -501,3 +489,4 @@ SYSV int snprintf(char *buffer, size_t bufsz, const char *fmt, ...)
     *buffer = '\0';
     return buffer - start;
 }
+*/
