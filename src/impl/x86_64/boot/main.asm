@@ -113,17 +113,20 @@ error:
     hlt
 
 section .bss
-align 4096
-; reserve memory for page tables and stack
+; reserve memory for stack
+align 16
+stack_bottom:
+    resb 16384 ; 16 KiB
+stack_top:
+
+section .global_pagetable
+; reserve memory for page tables
 page_table_l4:
-    resb 4096
+    resb 4096 ; 4 KiB
 page_table_l3:
     resb 4096
 page_table_l2:
     resb 4096
-stack_bottom:
-    resb 4096 * 4
-stack_top:
 
 ; read-only data
 section .rodata
