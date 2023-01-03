@@ -1,6 +1,20 @@
 #pragma once
 
-extern void int_enable();
-extern void int_disable();
-extern void cpu_idle();
-extern void cpu_halt();
+inline void int_enable()
+{
+    asm("sti");
+}
+inline void int_disable()
+{
+    asm("cli");
+}
+inline void cpu_idle()
+{
+    asm("sti");
+    asm("hlt");
+}
+extern void cpu_halt()
+{
+    asm("cli");
+    asm("hlt");
+}
