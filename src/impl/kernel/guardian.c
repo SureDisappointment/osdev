@@ -6,5 +6,7 @@ extern void guardian(unsigned int slot);
 
 void guardian(unsigned int slot)
 {
-    plugbox_report(slot).routine();
+    interrupt_handler gate = plugbox_report(slot);
+    if(gate.prologue())
+        gate.epilogue();
 }

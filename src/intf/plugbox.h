@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 typedef enum
 {
     int_timer = 32,
@@ -8,7 +10,8 @@ typedef enum
 
 typedef struct
 {
-    void (*routine)()
+    bool (*prologue)();
+    void (*epilogue)();
 } interrupt_handler;
 
 
