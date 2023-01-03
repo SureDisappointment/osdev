@@ -13,8 +13,8 @@ start:
     call setup_page_tables
     call enable_paging
 
-    lgdt [gdt64.pointer] ; load gdt
-    jmp gdt64.code_segment:long_mode_start
+    lgdt [gdt64.descriptor] ; load gdt
+    jmp gdt64.kernel_code_segment:long_mode_start ; reload cs register, activating gdt and jumping to 64-bit code
 
     hlt
 
@@ -128,14 +128,41 @@ page_table_l3:
 page_table_l2:
     resb 4096
 
-; read-only data
 section .rodata
 ; global descriptor table
 gdt64:
-    dq 0 ; zero entry
-.code_segment: equ $ - gdt64 ; offset of cs inside of gdt
-    ;  executable flag | descriptor type = 1 | present flag | 64-bit flag
-    dq (1 << 43)       | (1 << 44)           | (1 << 47)    | (1 << 53) ; code segment
-.pointer:
+    dq 0 ; null descriptor
+.kernel_code_segment: equ $ - gdt64 ; offset inside gdt
+    dw 0xFFFF ; limit
+    db 0, 0, 0 ; base
+    db 0x9A ; access byte
+    db 0xAF ; limit & flags
+    db 0 ; base
+.kernel_data_segment: equ $ - gdt64
+    dw 0xFFFF ; limit
+    db 0, 0, 0 ; base
+    db 0x92 ; access byte
+    db 0xCF ; limit & flags
+    db 0 ; base
+.user_code_segment: equ $ - gdt64
+    dw 0xFFFF ; limit
+    db 0, 0, 0 ; base
+    db 0xFA ; access byte
+    db 0xAF ; limit & flags
+    db 0 ; base
+.user_data_segment: equ $ - gdt64
+    dw 0xFFFF ; limit
+    db 0, 0, 0 ; base
+    db 0xF2 ; access byte
+    db 0xCF ; limit & flags
+    db 0 ; base
+.task_state_segment: equ $ - gdt64
+    dw 0xFFFF ; limit
+    db 0, 0, 0 ; base
+    db 0x89 ; access byte
+    db 0x0F ; limit & flags
+    db 0 ; base
+    dq 0 ; base
+.descriptor:
     dw $ - gdt64 - 1 ; gtd length
     dq gdt64 ; gdt location
