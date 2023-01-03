@@ -1,10 +1,10 @@
 #pragma once
 
-#include "panic.h"
+#include "plugbox.h"
 
 extern void guardian(unsigned int slot);
 
 void guardian(unsigned int slot)
 {
-    panicf("Interrupt received: %u", slot);
+    plugbox_report(slot).routine();
 }
