@@ -1,11 +1,11 @@
 #include "cgascr.h"
 #include "stdlib/stdio.h"
 #include "io_port.h"
+#include "device/ps2_keyboard.h"
 
 void kmain()
 {
-    outb(0x21,0xfd);
-    outb(0xa1,0xff);
+    ps2kbd_plugin();
     asm("sti");
 
     CGA_clear();
