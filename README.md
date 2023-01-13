@@ -18,7 +18,9 @@ Install the gcc and make package for your ditribution
 
 ## Building the kernel image
 Navigate to the root directory of the repository.
+
 Enter the docker container: ```make docker-run```
+
 Inside the docker container: ```make build-x86_64```
 
 ## Running the image using qemu
