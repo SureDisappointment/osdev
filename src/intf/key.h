@@ -16,6 +16,8 @@ typedef struct
     bool scroll_lock;
 } Key;
 
+Key new_key();
+
 bool key_valid(Key key);
 void invalidate_key(Key key);
 

@@ -1,5 +1,11 @@
 #include "key.h"
 
+inline Key new_key()
+{
+    Key k = {0, 0, 0, 0, 0, 0, 0, 0, 0 ,0};
+    return k;
+}
+
 inline bool key_valid(Key key)
 {
     return key.scancode != 0;

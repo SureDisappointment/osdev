@@ -38,7 +38,7 @@ unsigned char scan_num_tab[] = {8, 9, 10, 53, 5, 6, 7, 27, 2, 3, 4, 11, 51};
 
 unsigned char code;
 unsigned char prefix;
-Key gather = {0, 0, 0};
+Key gather = {0, 0, 0, 0, 0, 0, 0, 0, 0 ,0};
 char leds;
 
 // status register bits
@@ -71,6 +71,67 @@ enum
     prefix1 = 0xe0,
     prefix2 = 0xe1
 };
+
+void get_ascii_code()
+{
+    // Sonderfall Scancode 53: Dieser Code wird sowohl von der Minustaste
+    // des normalen Tastaturbereichs, als auch von der Divisionstaste des
+    // Ziffernblocks gesendet. Damit in beiden Faellen ein Code heraus-
+    // kommt, der der Aufschrift entspricht, muss im Falle des Ziffern-
+    // blocks eine Umsetzung auf den richtigen Code der Divisionstaste
+    // erfolgen.
+    if (code == 53 && prefix == prefix1) // Divisionstaste des Ziffernblocks
+    {
+        gather.ascii = '/';
+        gather.scancode = key_div;
+    }
+
+    // Anhand der Modifierbits muss die richtige Tabelle ausgewaehlt
+    // werden. Der Einfachheit halber hat NumLock Vorrang vor Alt,
+    // Shift und CapsLock. Fuer Ctrl gibt es keine eigene Tabelle.
+
+    else if (gather.num_lock && !prefix && code >= 71 && code <= 83)
+    {
+        // Bei eingeschaltetem NumLock und der Betaetigung einer der
+        // Tasten des separaten Ziffernblocks (Codes 71-83), sollen
+        // nicht die Scancodes der Cursortasten, sondern ASCII und
+        // Scancodes der ensprechenden Zifferntasten geliefert werden.
+        // Die Tasten des Cursorblocks (prefix == prefix1) sollen
+        // natuerlich weiterhin zur Cursorsteuerung genutzt werden
+        // koennen. Sie senden dann uebrigens noch ein Shift, aber das
+        // sollte nicht weiter stoeren.
+        gather.ascii = asc_num_tab[code - 71];
+        gather.scancode = scan_num_tab[code - 71];
+    }
+    else if (gather.alt_right)
+    {
+        gather.ascii = alt_tab[code];
+        gather.scancode = code;
+    }
+    else if (gather.shift)
+    {
+        gather.ascii = shift_tab[code];
+        gather.scancode = code;
+    }
+    else if (gather.caps_lock)
+    { // Die Umschaltung soll nur bei Buchstaben gelten
+        if ((code >= 16 && code <= 26) || (code >= 30 && code <= 40) || (code >= 44 && code <= 50))
+        {
+            gather.ascii = shift_tab[code];
+            gather.scancode = code;
+        }
+        else
+        {
+            gather.ascii = normal_tab[code];
+            gather.scancode = code;
+        }
+    }
+    else
+    {
+        gather.ascii = normal_tab[code];
+        gather.scancode = code;
+    }
+}
 
 bool key_decoded()
 {
@@ -185,67 +246,6 @@ bool key_decoded()
         return false;
 }
 
-void get_ascii_code()
-{
-    // Sonderfall Scancode 53: Dieser Code wird sowohl von der Minustaste
-    // des normalen Tastaturbereichs, als auch von der Divisionstaste des
-    // Ziffernblocks gesendet. Damit in beiden Faellen ein Code heraus-
-    // kommt, der der Aufschrift entspricht, muss im Falle des Ziffern-
-    // blocks eine Umsetzung auf den richtigen Code der Divisionstaste
-    // erfolgen.
-    if (code == 53 && prefix == prefix1) // Divisionstaste des Ziffernblocks
-    {
-        gather.ascii = '/';
-        gather.scancode = key_div;
-    }
-
-    // Anhand der Modifierbits muss die richtige Tabelle ausgewaehlt
-    // werden. Der Einfachheit halber hat NumLock Vorrang vor Alt,
-    // Shift und CapsLock. Fuer Ctrl gibt es keine eigene Tabelle.
-
-    else if (gather.num_lock && !prefix && code >= 71 && code <= 83)
-    {
-        // Bei eingeschaltetem NumLock und der Betaetigung einer der
-        // Tasten des separaten Ziffernblocks (Codes 71-83), sollen
-        // nicht die Scancodes der Cursortasten, sondern ASCII und
-        // Scancodes der ensprechenden Zifferntasten geliefert werden.
-        // Die Tasten des Cursorblocks (prefix == prefix1) sollen
-        // natuerlich weiterhin zur Cursorsteuerung genutzt werden
-        // koennen. Sie senden dann uebrigens noch ein Shift, aber das
-        // sollte nicht weiter stoeren.
-        gather.ascii = asc_num_tab[code - 71];
-        gather.scancode = scan_num_tab[code - 71];
-    }
-    else if (gather.alt_right)
-    {
-        gather.ascii = alt_tab[code];
-        gather.scancode = code;
-    }
-    else if (gather.shift)
-    {
-        gather.ascii = shift_tab[code];
-        gather.scancode = code;
-    }
-    else if (gather.caps_lock)
-    { // Die Umschaltung soll nur bei Buchstaben gelten
-        if ((code >= 16 && code <= 26) || (code >= 30 && code <= 40) || (code >= 44 && code <= 50))
-        {
-            gather.ascii = shift_tab[code];
-            gather.scancode = code;
-        }
-        else
-        {
-            gather.ascii = normal_tab[code];
-            gather.scancode = code;
-        }
-    }
-    else
-    {
-        gather.ascii = normal_tab[code];
-        gather.scancode = code;
-    }
-}
-
 void keyctrl_init()
 {
     // alle LEDs ausschalten (bei vielen PCs ist NumLock nach dem Booten an)
@@ -259,7 +259,7 @@ void keyctrl_init()
 
 Key keyctrl_key_hit()
 {
-    Key invalid = {0, 0, 0};
+    Key invalid = new_key();
     if (inb(0x64) & auxb)
         return invalid;
 
@@ -289,7 +289,9 @@ void keyctrl_reboot()
 
 void keyctrl_set_repeat_rate(int speed, int delay)
 {
-    //scoped_interrupt_guard guard(PIC::keyboard);
+    bool was_forbidden = pic_ismasked(pic_keyboard);
+    if (!was_forbidden)
+        pic_forbid(pic_keyboard);
 
     unsigned char data = (delay << 5 | speed) & 0b01111111;
     kbd_reply reply = resend;
@@ -310,11 +312,16 @@ void keyctrl_set_repeat_rate(int speed, int delay)
     outb(0x60, data);
     while (inb(0x64) & inpb)
         ;
+    
+    if (!was_forbidden)
+        pic_allow(pic_keyboard);
 }
 
 void keyctrl_set_led(key_led led, bool on)
 {
-    //scoped_interrupt_guard guard(PIC::keyboard);
+    bool was_forbidden = pic_ismasked(pic_keyboard);
+    if (!was_forbidden)
+        pic_forbid(pic_keyboard);
 
     if (on)
         leds |= led;
@@ -338,4 +345,7 @@ void keyctrl_set_led(key_led led, bool on)
     outb(0x60, leds);
     while (inb(0x64) & inpb)
         ;
+    
+    if (!was_forbidden)
+        pic_allow(pic_keyboard);
 }
