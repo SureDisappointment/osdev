@@ -1,3 +1,4 @@
+OUTPUT_FORMAT("elf64-x86-64")
 ENTRY(start)
 
 SECTIONS
@@ -10,6 +11,7 @@ SECTIONS
 
     .text :
     {
+        *(.head.text)
         *(.text)
         *(.init)
         *(.fini)
@@ -35,12 +37,7 @@ SECTIONS
         PROVIDE_HIDDEN(__fini_array_end = .);
     }
 
-    .rodata :
-    {
-        *(.rodata)
-    }
-
-    .data :
+    .data ALIGN(16) :
     {
         *(.data)
         *(.mbi.data)
@@ -51,6 +48,11 @@ SECTIONS
         ___BSS_START__ = .;
         *(.bss)
         ___BSS_END__ = .;
+    }
+
+    .rodata :
+    {
+        *(.rodata)
     }
 
     .global_pagetable ALIGN(4096) :

@@ -26,7 +26,7 @@ extern __fini_array_start
 extern __fini_array_end
 
 
-section .text
+section .head.text
 bits 64
 ; void jump_usermode(uint64_t start_addr)
 jump_usermode:
