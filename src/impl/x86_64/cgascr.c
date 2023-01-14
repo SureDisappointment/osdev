@@ -1,6 +1,7 @@
 #include "cgascr.h"
 #include "stdlib/algorithm.h"
 #include "stdlib/assert.h"
+#include "io_port.h"
 #include "panic.h"
 #include <stdint.h>
 
@@ -30,12 +31,15 @@ void clear_row(size_t row)
 {
     for(size_t col = 0; col < WIDTH; col++)
         show_glyph(col, row, clear_glyph);
+    if(cursor_y == row)
+        CGA_setpos(0, cursor_y);
 }
 
 void CGA_clear()
 {
     for(size_t i = 0; i < HEIGHT; i++)
         clear_row(i);
+    CGA_setpos(0, 0);
 }
 
 void CGA_show(size_t x, size_t y, char c)
@@ -49,6 +53,15 @@ void CGA_setpos(size_t x, size_t y)
     assert(y < HEIGHT && x < WIDTH, "CGA screen indexed out of bounds");
     cursor_x = x;
     cursor_y = y;
+
+    size_t pos = y * WIDTH + x;
+    unsigned char high = (pos & 0xFF00) >> 8;
+    unsigned char low = pos & 0x00FF;
+
+    outb(0x3D4, 14);
+    outb(0x3D5, high);
+    outb(0x3D4, 15);
+    outb(0x3D5, low);
 }
 
 void CGA_getpos(size_t *x, size_t *y)
@@ -115,11 +128,13 @@ void CGA_putchar(char c)
     if(c < ' ')
     {
         handle_control_char(c);
-        return;
     }
-
-    CGA_show(cursor_x, cursor_y, c);
-    cursor_x++;
+    else
+    {
+        CGA_show(cursor_x, cursor_y, c);
+        cursor_x++;
+    }
+    CGA_setpos(cursor_x, cursor_y);
 }
 
 void CGA_puts(const char *s)
