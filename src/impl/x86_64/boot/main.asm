@@ -5,6 +5,8 @@ global start
 extern gdt64
 extern gdt64.kernel_code
 extern gdt64.tss
+extern gdt64.tss.descriptor
+extern gdt64.pointer
 
 ; tss
 extern tss64
@@ -238,7 +240,8 @@ init_tss:
     ; RSP0 (lower 32 bits)
     mov dword [edi+4], stack_top
 
-    mov	edi,			gdt64 + gdt64.tss
+    ; update gdt entry
+    mov	edi,			gdt64.tss.descriptor
     mov	eax,			tss64
     ; Set Base Low [15:00]
     mov	[edi+2],		ax

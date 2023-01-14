@@ -63,7 +63,8 @@ long_mode_start:
 
 ; void jump_usermode(uint64_t start_addr)
 jump_usermode:
-	mov ax, gdt64.user_data | 3 ; usermode data segment with bottom 2 bits set for ring 3
+	mov ax, gdt64.user_data
+	or ax, 3 ; usermode data segment with bottom 2 bits set for ring 3
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
@@ -71,10 +72,14 @@ jump_usermode:
 
 	; set up the stack frame iretq expects
 	mov rax, rsp
-	push gdt64.user_data | 3 ; data selector
+	mov rbx, gdt64.user_data
+	or rbx, 3
+	mov rcx, gdt64.user_code
+	or rcx, 3
+	push rbx ; data selector
 	push rax ; stack pointer
 	pushf ; rflags
-	push gdt64.user_code | 3 ; code selector
+	push rcx ; code selector
 	push rdi ; instruction address (of ring 3 function) to jump to
 
 	iretq
@@ -274,7 +279,7 @@ section .rodata
 idt:
 %macro idt_interrupt_entry 1
 	dw  (wrapper_%1 - wrapper_0) & 0xffff ; offset 0 .. 15
-	dw  gdt64.kernel_code | 0 ; segment selector
+	dw  gdt64.kernel_code ; segment selector
 	dw  0x8e00 ; 64-bit interrupt gate, present
 	dw  ((wrapper_%1 - wrapper_0) & 0xffff0000) >> 16 ; offset 16 .. 31
 	dd  ((wrapper_%1 - wrapper_0) & 0xffffffff00000000) >> 32 ; offset 32..63
@@ -282,7 +287,7 @@ idt:
 %endmacro
 %macro idt_trap_entry 1
 	dw  (wrapper_%1 - wrapper_0) & 0xffff ; offset 0 .. 15
-	dw  gdt64.kernel_code | 0 ; segment selector
+	dw  gdt64.kernel_code ; segment selector
 	dw  0x8f00 ; 64-bit trap gate, present
 	dw  ((wrapper_%1 - wrapper_0) & 0xffff0000) >> 16 ; offset 16 .. 31
 	dd  ((wrapper_%1 - wrapper_0) & 0xffffffff00000000) >> 32 ; offset 32..63

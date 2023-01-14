@@ -16,7 +16,7 @@ extern void jump_usermode(uint64_t start_addr);
 
 void test_user_function()
 {
-    printf("Test");
+    CGA_show(0, 0, 'U');
     for(;;);
 }
 
@@ -86,8 +86,8 @@ void kmain(unsigned long magic, unsigned long addr)
     tag = (struct multiboot_tag *)((multiboot_uint8_t *)tag + ((tag->size + 7) & ~7));
     printf("Total mbi size 0x%x\n", (unsigned) tag - addr);
 
-    for(;;)
-        asm("hlt");
+    // for(;;)
+    //     asm("hlt");
 
     uint64_t rsp;
     asm volatile("mov %%rsp, %0" : "=r"(rsp));
