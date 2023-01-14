@@ -1,4 +1,17 @@
 global long_mode_start
+global jump_usermode
+
+; gdt segments
+extern gdt64
+extern gdt64.kernel_code
+extern gdt64.kernel_data
+extern gdt64.user_code
+extern gdt64.user_data
+extern gdt64.tss
+
+; multiboot information
+extern mb_magic
+extern mbi_addr
 
 ; C kernel functions
 extern kmain
@@ -15,9 +28,27 @@ extern __fini_array_end
 
 section .text
 bits 64
+; void jump_usermode(uint64_t start_addr)
+jump_usermode:
+	mov ax, (4 * 8) | 3 ; usermode data segment with bottom 2 bits set for ring 3
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax ; SS is handled by iretq
+
+	; set up the stack frame iretq expects
+	mov rax, rsp
+	push (4 * 8) | 3 ; data selector
+	push rax ; stack pointer
+	pushf ; rflags
+	push (3 * 8) | 3 ; code selector (usermode code segment with bottom 2 bits set for ring 3)
+	push rdi ; instruction address (of ring 3 function) to jump to
+
+	iretq
+
 long_mode_start:
     ; reload data segment registers
-    mov ax, 0
+    mov ax, gdt64.kernel_data
     mov ss, ax
     mov ds, ax
     mov es, ax
@@ -38,6 +69,11 @@ long_mode_start:
 
     fninit ; activate FPU
     call _init ; call global constructors
+	xor rsi, rsi
+	xor rdi, rdi
+	mov esi, DWORD [mbi_addr] ; get multiboot info
+	mov edi, DWORD [mb_magic] ; get multiboot magic number
+	xor rbp, rbp ; setup a NULL stack frame as an anchor for stack backtracing
     call kmain ; start kernel
     call _fini ; call global destructors
     cli
@@ -81,6 +117,9 @@ wrapper_body:
 
 	; pass interrupt number as argument
 	mov    rdi, rax
+	; pass location of error code as argument (might not be valid if no error code exists)
+	mov    rsi, rbp
+	add    rsi, 8
 	call   guardian
 
 	; restore volatile registers
@@ -154,6 +193,7 @@ remap_pics:
 	ret
 
 setup_cursor:
+	; enable cursor
 	mov al, 0x0a
 	mov dx, 0x3d4
 	out dx, al
@@ -175,6 +215,25 @@ setup_cursor:
 	and al, 0xe0
 	or al, 15
 	out dx, al
+	call delay
+
+	; set cursor position to (0,0)
+	mov al, 0x0e
+	mov dx, 0x3d4
+	out dx, al
+	call delay
+	mov al, 0x0
+	mov dx, 0x3d5
+	out dx, al
+	call delay
+	mov al, 0x0f
+	mov dx, 0x3d4
+	out dx, al
+	call delay
+	mov al, 0x0
+	mov dx, 0x3d5
+	out dx, al
+
 	ret
 
 _init:
@@ -210,15 +269,14 @@ delay:
 	ret
 
 
-section .data
-
+section .rodata
 ;
 ; interrupt descriptor table with 256 entries
 ;
 idt:
 %macro idt_interrupt_entry 1
 	dw  (wrapper_%1 - wrapper_0) & 0xffff ; offset 0 .. 15
-	dw  0b1000 ; segment selector: 1st segment (kernel code segment) in GDT
+	dw  (1 * 8) | 0 ; segment selector: 1st segment (kernel code segment) in GDT
 	dw  0x8e00 ; 64-bit interrupt gate, present
 	dw  ((wrapper_%1 - wrapper_0) & 0xffff0000) >> 16 ; offset 16 .. 31
 	dd  ((wrapper_%1 - wrapper_0) & 0xffffffff00000000) >> 32 ; offset 32..63
@@ -226,7 +284,7 @@ idt:
 %endmacro
 %macro idt_trap_entry 1
 	dw  (wrapper_%1 - wrapper_0) & 0xffff ; offset 0 .. 15
-	dw  0b1000 ; segment selector: 1st segment (kernel code segment) in GDT
+	dw  (1 * 8) | 0 ; segment selector: 1st segment (kernel code segment) in GDT
 	dw  0x8f00 ; 64-bit trap gate, present
 	dw  ((wrapper_%1 - wrapper_0) & 0xffff0000) >> 16 ; offset 16 .. 31
 	dd  ((wrapper_%1 - wrapper_0) & 0xffffffff00000000) >> 32 ; offset 32..63

@@ -43,6 +43,7 @@ SECTIONS
     .data :
     {
         *(.data)
+        *(.mbi.data)
     }
 
     .bss ALIGN(16) : 
@@ -52,7 +53,7 @@ SECTIONS
         ___BSS_END__ = .;
     }
 
-    .global_pagetable ALIGN(4096) (NOLOAD) :
+    .global_pagetable ALIGN(4096) :
     {
         *(.global_pagetable)
     }
