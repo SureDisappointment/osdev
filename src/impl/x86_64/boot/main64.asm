@@ -2,12 +2,10 @@ global long_mode_start
 global jump_usermode
 
 ; gdt segments
-extern gdt64
 extern gdt64.kernel_code
 extern gdt64.kernel_data
 extern gdt64.user_code
 extern gdt64.user_data
-extern gdt64.tss
 
 ; multiboot information
 extern mb_magic
@@ -28,24 +26,6 @@ extern __fini_array_end
 
 section .head.text
 bits 64
-; void jump_usermode(uint64_t start_addr)
-jump_usermode:
-	mov ax, (4 * 8) | 3 ; usermode data segment with bottom 2 bits set for ring 3
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax ; SS is handled by iretq
-
-	; set up the stack frame iretq expects
-	mov rax, rsp
-	push (4 * 8) | 3 ; data selector
-	push rax ; stack pointer
-	pushf ; rflags
-	push (3 * 8) | 3 ; code selector (usermode code segment with bottom 2 bits set for ring 3)
-	push rdi ; instruction address (of ring 3 function) to jump to
-
-	iretq
-
 long_mode_start:
     ; reload data segment registers
     mov ax, gdt64.kernel_data
@@ -63,7 +43,7 @@ long_mode_start:
 	cmp    rdi, ___BSS_END__
 	jne    .clear_bss
 
-    call setup_idt
+    call setup_idt ; fill IDT with guardian calls
     call remap_pics ; remap PICs to not conflict with CPU exceptions and mask all PIC lines (for now)
     call setup_cursor ; restore blinking cursor (switched off by GRUB)
 
@@ -71,15 +51,33 @@ long_mode_start:
     call _init ; call global constructors
 	xor rsi, rsi
 	xor rdi, rdi
-	mov esi, DWORD [mbi_addr] ; get multiboot info
+	mov esi, DWORD [mbi_addr] ; get GRUB multiboot info
 	mov edi, DWORD [mb_magic] ; get multiboot magic number
-	xor rbp, rbp ; setup a NULL stack frame as an anchor for stack backtracing
+	xor rbp, rbp ; setup a null stack frame as an anchor for stack backtracing
     call kmain ; start kernel
     call _fini ; call global destructors
     cli
 .hlt:
     hlt
     jmp .hlt
+
+; void jump_usermode(uint64_t start_addr)
+jump_usermode:
+	mov ax, gdt64.user_data | 3 ; usermode data segment with bottom 2 bits set for ring 3
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax ; SS is handled by iretq
+
+	; set up the stack frame iretq expects
+	mov rax, rsp
+	push gdt64.user_data | 3 ; data selector
+	push rax ; stack pointer
+	pushf ; rflags
+	push gdt64.user_code | 3 ; code selector
+	push rdi ; instruction address (of ring 3 function) to jump to
+
+	iretq
 
 
 ; interrupt handler head
@@ -276,7 +274,7 @@ section .rodata
 idt:
 %macro idt_interrupt_entry 1
 	dw  (wrapper_%1 - wrapper_0) & 0xffff ; offset 0 .. 15
-	dw  (1 * 8) | 0 ; segment selector: 1st segment (kernel code segment) in GDT
+	dw  gdt64.kernel_code | 0 ; segment selector
 	dw  0x8e00 ; 64-bit interrupt gate, present
 	dw  ((wrapper_%1 - wrapper_0) & 0xffff0000) >> 16 ; offset 16 .. 31
 	dd  ((wrapper_%1 - wrapper_0) & 0xffffffff00000000) >> 32 ; offset 32..63
@@ -284,7 +282,7 @@ idt:
 %endmacro
 %macro idt_trap_entry 1
 	dw  (wrapper_%1 - wrapper_0) & 0xffff ; offset 0 .. 15
-	dw  (1 * 8) | 0 ; segment selector: 1st segment (kernel code segment) in GDT
+	dw  gdt64.kernel_code | 0 ; segment selector
 	dw  0x8f00 ; 64-bit trap gate, present
 	dw  ((wrapper_%1 - wrapper_0) & 0xffff0000) >> 16 ; offset 16 .. 31
 	dd  ((wrapper_%1 - wrapper_0) & 0xffffffff00000000) >> 32 ; offset 32..63

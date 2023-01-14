@@ -14,3 +14,12 @@ header_start:
     dw 0
     dd 8
 header_end:
+
+; space for multiboot information
+section .mbi.data
+global mb_magic
+global mbi_addr
+mb_magic:
+    resb 4
+mbi_addr:
+    resb 4
