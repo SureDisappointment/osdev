@@ -35,7 +35,7 @@ void pic_forbid(pic_number device)
     write_imr(imr);
 }
 
-int pic_ismasked(pic_number device)
+bool pic_ismasked(pic_number device)
 {
     uint16_t imr = read_imr();
     return imr & (1 << device);

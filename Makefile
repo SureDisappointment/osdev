@@ -20,7 +20,7 @@ CFLAGS := $(CFLAGS) -O3 -fno-tree-loop-distribute-patterns -fno-tree-vectorize -
 endif
 
 # Targets that don't depend on files
-.PHONY: build-x86_64 build-all clean run-x86_64 run-all docker-build docker-run
+.PHONY: build-x86_64 build-all clean run-x86_64 docker-build docker-run
 
 # Linux only targets (compile & build)
 ifeq ($(FOUND_OS), Linux)
@@ -83,9 +83,6 @@ endif
 # Emulate x86_64 iso using qemu
 run-x86_64:
 	qemu-system-x86_64 -cdrom $(DIST_DIR)/x86_64/kernel.iso
-
-# Emulate all supported architectures
-run-all: run-x86_64
 
 # Build docker env from Dockerfile
 docker-build: buildenv/Dockerfile

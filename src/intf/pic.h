@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 typedef enum
 {
     pic_timer = 0,
@@ -20,4 +22,4 @@ typedef enum
 
 void pic_allow(pic_number device);
 void pic_forbid(pic_number device);
-int pic_ismasked(pic_number device);
+bool pic_ismasked(pic_number device);
