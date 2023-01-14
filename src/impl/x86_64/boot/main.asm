@@ -18,7 +18,7 @@ extern mb_magic
 ; long mode entry point
 extern long_mode_start
 
-section .text
+section .entry.text progbits alloc exec nowrite align=16
 bits 32
 start:
     mov esp, stack_top
@@ -169,12 +169,11 @@ setup_page_tables:
     mov cr0, eax                                   ; Set control register 0 to the A-register
 
     ; clear tables, pass page table location to cpu
-    mov edi, page_table_l4       ; Set the destination index.
-    mov cr3, edi                 ; Set control register 3 to the destination index.
-    xor eax, eax                 ; Nullify the A-register.
-    mov ecx, 4096                ; Set the C-register to 4096.
-    rep stosd                    ; Clear the memory.
-    mov edi, cr3                 ; Set the destination index to control register 3.
+    mov edi, page_table_l4
+    mov cr3, edi
+    xor eax, eax
+    mov ecx, page_table_length
+    rep stosd
 
     mov eax, page_table_l3
     or eax, 0b111                ; present, writable, usermode-accessible
@@ -269,7 +268,7 @@ stack_bottom:
     resb 16384 ; 16 KiB
 stack_top:
 
-section .global_pagetable
+section .global_pagetable nobits alloc noexec write align=4
 ; reserve memory for page tables
 page_table_l4:
     resb 4096 ; 4 KiB
@@ -279,3 +278,4 @@ page_table_l2:
     resb 4096
 page_table_l1:
     resb 4096*2
+page_table_length: equ $ - page_table_l4

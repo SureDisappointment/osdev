@@ -1,4 +1,4 @@
-section .multiboot_header
+section .multiboot_header progbits alloc noexec write align=4
 header_start:
     ; magic number
     dd 0xe85250d6 ; multiboot2
@@ -16,10 +16,10 @@ header_start:
 header_end:
 
 ; space for multiboot information
-section .mbi.data
+section .mbi.data progbits alloc noexec write align=4
 global mb_magic
 global mbi_addr
 mb_magic:
-    resb 4
+    dd 0
 mbi_addr:
-    resb 4
+    dd 0

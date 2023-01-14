@@ -12,6 +12,7 @@ SECTIONS
     .text :
     {
         *(.head.text)
+        *(.entry.text)
         *(.text)
         *(.init)
         *(.fini)

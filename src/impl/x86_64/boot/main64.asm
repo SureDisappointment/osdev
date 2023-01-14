@@ -24,7 +24,7 @@ extern __fini_array_start
 extern __fini_array_end
 
 
-section .head.text
+section .head.text progbits alloc exec nowrite align=16
 bits 64
 long_mode_start:
     ; reload data segment registers
