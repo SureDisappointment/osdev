@@ -1,6 +1,14 @@
 ; functions
 global start
 
+; page tables
+global page_table
+global page_table.l4
+global page_table.l3
+global page_table.l2
+global page_table.l1
+global page_table.length
+
 ; gdt 
 extern gdt64
 extern gdt64.kernel_code
@@ -21,6 +29,8 @@ extern long_mode_start
 section .entry.text progbits alloc exec nowrite align=16
 bits 32
 start:
+    cli
+
     mov esp, stack_top
 
     ; save grub multiboot info
@@ -169,26 +179,35 @@ setup_page_tables:
     mov cr0, eax                                   ; Set control register 0 to the A-register
 
     ; clear tables, pass page table location to cpu
-    mov edi, page_table_l4
+    mov edi, page_table
     mov cr3, edi
     xor eax, eax
-    mov ecx, page_table_length
+    mov ecx, page_table.length >> 2
     rep stosd
 
-    mov eax, page_table_l3
+    ; map one PDPT
+    mov eax, page_table.l3
     or eax, 0b111                ; present, writable, usermode-accessible
-    mov [page_table_l4], eax
+    mov [page_table.l4], eax
 
-    mov eax, page_table_l2
+    ; map four PDs (adressing 1 GiB each)
+    mov eax, page_table.l2
     or eax, 0b111                ; present, writable, usermode-accessible
-    mov [page_table_l3], eax
+    mov [page_table.l3], eax
+    add eax, 0x1000
+    mov [page_table.l3 + 8], eax
+    add eax, 0x1000
+    mov [page_table.l3 + 16], eax
+    add eax, 0x1000
+    mov [page_table.l3 + 24], eax
 
-    mov eax, page_table_l1
+    ; map one PT (adressing 2 MiB each)
+    mov eax, page_table.l1
     or eax, 0b111                ; present, writable, usermode-accessible
-    mov [page_table_l2], eax
+    mov [page_table.l2], eax
 
 ; Identity map first 2 MiB kernel memory
-    mov edi, page_table_l1
+    mov edi, page_table.l1
     mov ebx, 0b111                ; present, writable
     mov ecx, 512
 .SetEntry1:
@@ -197,21 +216,10 @@ setup_page_tables:
     add edi, 8                   ; Add eight to the destination index.
     loop .SetEntry1              ; Set the next entry.
 
-; Map video memory (0xb8000 - 0xbffff) to 0x2b8000 for userspace
-    mov eax, page_table_l1 + 4096
-    or eax, 0b111                ; present, writable, usermode-accessible
-    mov [page_table_l2 + 8], eax
-
-    mov edi, page_table_l1
-    add edi, 5568
-    mov ebx, 0xb8000
-    or ebx, 0b111                ; present, writable, usermode-accessible
-    mov ecx, 8
-.SetEntry2:
-    mov DWORD [edi], ebx         ; Set the uint32_t at the destination index to the B-register.
-    add ebx, 0x1000              ; Add 0x1000 to the B-register.
-    add edi, 8                   ; Add eight to the destination index.
-    loop .SetEntry2              ; Set the next entry.
+; Map kernel memory to 0xC0000000 as well
+    mov eax, page_table.l1
+    or eax, 0b111                 ; present, writable, usermode-accessible
+    mov [page_table.l2 + 0x3000], eax
 
     ret
 
@@ -261,21 +269,23 @@ error:
     mov byte [0xb800a], al
     hlt
 
-section .bss
+section .bootstrap_stack nobits alloc noexec write align=4
 ; reserve memory for stack
 align 16
 stack_bottom:
-    resb 16384 ; 16 KiB
+    resb 4096 ; 4 KiB
 stack_top:
 
 section .global_pagetable nobits alloc noexec write align=4
 ; reserve memory for page tables
-page_table_l4:
+align 4096
+page_table:
+.l4:
     resb 4096 ; 4 KiB
-page_table_l3:
+.l3:
     resb 4096
-page_table_l2:
+.l2:
+    resb 4096*4
+.l1:
     resb 4096
-page_table_l1:
-    resb 4096*2
-page_table_length: equ $ - page_table_l4
+.length: equ $ - page_table

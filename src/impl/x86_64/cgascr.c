@@ -15,7 +15,7 @@ typedef struct
 } glyph;
 static const glyph clear_glyph = {0, CGA_DEFAULT_COLOR};
 
-glyph *screen = (glyph*) 0xb8000;
+glyph *screen = (glyph*) 0xC00B8000;
 size_t cursor_x = 0;
 size_t cursor_y = 0;
 

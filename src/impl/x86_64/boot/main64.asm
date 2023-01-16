@@ -1,6 +1,14 @@
 global long_mode_start
 global jump_usermode
 
+; page tables
+extern page_table
+extern page_table.l4
+extern page_table.l3
+extern page_table.l2
+extern page_table.l1
+extern page_table.length
+
 ; gdt segments
 extern gdt64.kernel_code
 extern gdt64.kernel_data
@@ -12,6 +20,7 @@ extern mb_magic
 extern mbi_addr
 
 ; C kernel functions
+extern check_multiboot2
 extern kmain
 extern guardian
 
@@ -49,14 +58,33 @@ long_mode_start:
 
     fninit ; activate FPU
     call _init ; call global constructors
+
 	xor rsi, rsi
 	xor rdi, rdi
 	mov esi, DWORD [mbi_addr] ; get GRUB multiboot info
 	mov edi, DWORD [mb_magic] ; get multiboot magic number
+	call check_multiboot2
+
+	; unmap identity paging
+	mov rax, 0
+    mov [page_table.l2], rax
+	mov rcx, cr3 ; reload cr3 to force a TLB flush so the changes take effect
+	mov cr3, rcx
+	mov rsp, stack_top ; load new stack
+
 	xor rbp, rbp ; setup a null stack frame as an anchor for stack backtracing
     call kmain ; start kernel
+
+	; kmain shouldn't return!
+	; if - for whatever reason - it does, perform cleanup tasks
+
+	; remap identity paging TODO: obviously doesn't work because page_table isn't identity mapped anymore!
+	mov rax, page_table.l1
+    or rax, 0b111
+    mov [page_table.l2], rax
+
     call _fini ; call global destructors
-    cli
+    cli ; disable interrupts
 .hlt:
     hlt
     jmp .hlt
@@ -272,7 +300,7 @@ delay:
 	ret
 
 
-section .rodata
+section .idt.rodata progbits alloc noexec nowrite align=4
 ;
 ; interrupt descriptor table with 256 entries
 ;
@@ -308,3 +336,11 @@ idt_interrupt_entry i
 idt_descr:
 	dw  256*8 - 1 ; 256 entries
 	dq idt
+
+
+section .kernel_stack nobits alloc noexec write align=4
+; reserve memory for stack
+align 16
+stack_bottom:
+    resb 16384 ; 16 KiB
+stack_top:
