@@ -33,6 +33,7 @@ SECTIONS
     }
 
     . += 0xC0000000;
+    _readonly_start = . - 0xC0000000;
     .text ALIGN(4K) : AT(ADDR(.text) - 0xC0000000)
     {
         *(.head.text)
@@ -51,7 +52,7 @@ SECTIONS
         PROVIDE_HIDDEN(__init_array_end = . - 0xC0000000);
     }
 
-    .fini_array ALIGN(4K) : AT(ADDR(.fini_array) - 0xC0000000)
+    .fini_array : AT(ADDR(.fini_array) - 0xC0000000)
     {
         PROVIDE_HIDDEN(__fini_array_start = . - 0xC0000000);
         KEEP(*(SORT(.fini_array.*)))
@@ -65,6 +66,7 @@ SECTIONS
     {
         *(.rodata)
     }
+    _readonly_end = . - 0xC0000000;
 
     .data ALIGN(4K) : AT(ADDR(.data) - 0xC0000000)
     {

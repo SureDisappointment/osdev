@@ -26,6 +26,10 @@ extern mb_magic
 ; long mode entry point
 extern long_mode_start
 
+; linker supplied addresses
+extern _readonly_start
+extern _readonly_end
+
 section .entry.text progbits alloc exec nowrite align=16
 bits 32
 start:
@@ -206,17 +210,29 @@ setup_page_tables:
     or eax, 0b111                ; present, writable, usermode-accessible
     mov [page_table.l2], eax
 
-; Identity map first 2 MiB kernel memory
+    ; Identity map first 2 MiB kernel memory
     mov edi, page_table.l1
-    mov ebx, 0b111                ; present, writable
+    mov ebx, 0b101               ; present, not writable TODO: remove user bit
     mov ecx, 512
-.SetEntry1:
-    mov DWORD [edi], ebx         ; Set the uint32_t at the destination index to the B-register.
-    add ebx, 0x1000              ; Add 0x1000 to the B-register.
-    add edi, 8                   ; Add eight to the destination index.
-    loop .SetEntry1              ; Set the next entry.
+.SetEntry:
+    ; if address in ebx is between _readonly_start and _readonly_end, do not add `writable` bit
+    cmp ebx, _readonly_start
+    jb  .writable
+    cmp ebx, _readonly_end
+    jb  .readonly
+.writable:
+    mov eax, ebx
+    or  eax, 0b11                ; present, writable TODO: remove user bit
+    mov DWORD [edi], eax
+    jmp .cont
+.readonly:
+    mov DWORD [edi], ebx
+.cont:
+    add ebx, 0x1000
+    add edi, 8
+    loop .SetEntry
 
-; Map kernel memory to 0xC0000000 as well
+    ; Map kernel memory to 0xC0000000 as well
     mov eax, page_table.l1
     or eax, 0b111                 ; present, writable, usermode-accessible
     mov [page_table.l2 + 0x3000], eax

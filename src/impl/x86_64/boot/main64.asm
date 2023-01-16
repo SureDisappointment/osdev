@@ -24,7 +24,7 @@ extern check_multiboot2
 extern kmain
 extern guardian
 
-; compiler supplied addresses
+; linker supplied addresses
 extern ___BSS_START__
 extern ___BSS_END__
 extern __init_array_start
