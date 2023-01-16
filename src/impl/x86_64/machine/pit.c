@@ -4,6 +4,7 @@
 #include "thread/scheduler.h"
 #include "io_port.h"
 #include "stdlib/assert.h"
+#include <stddef.h>
 
 unsigned int us_interval = 0;
 unsigned int it = 0;
@@ -20,14 +21,15 @@ bool pit_prologue()
     return false;
 }
 
-void pit_epilogue()
-{
-    scheduler_resume();
-}
+void watch_epilogue(){};
 
-void watch_plugin()
+void watch_plugin(void (*epilogue)())
 {
-    plugbox_assign(int_timer, new_interrupt_handler(pit_prologue, pit_epilogue));
+    if(epilogue == NULL)
+    {
+        epilogue = watch_epilogue;
+    }
+    plugbox_assign(int_timer, new_interrupt_handler(pit_prologue, epilogue));
     pic_allow(pic_timer);
 }
 

@@ -34,7 +34,7 @@ void kmain()
     ps2kbd_plugin();
     int_enable();
 
-    jump_usermode((uint64_t)&test_user_function);
+    jump_usermode((uint64_t)test_user_function);
 
     // temporary stacks for testing context switches
     unsigned char stack1[(1 << 10)];
@@ -48,7 +48,7 @@ void kmain()
     scheduler_ready(c1);
     scheduler_ready(c2);
     watch_set(60000, 20);
-    watch_plugin();
+    watch_plugin(scheduler_resume);
     scheduler_schedule();
 
     /*CGA_clear();
